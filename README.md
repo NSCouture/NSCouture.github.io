@@ -1,46 +1,7 @@
-# Bridal Couture Catalogue — GitHub Pages
+# NSCouture Catalogue — GitHub Pages
 
-A zero-cost, automatically updating product catalogue hosted on GitHub Pages.
+Automatically updating product catalogue hosted on GitHub Pages.
 **Upload or delete images → the site rebuilds and goes live automatically.**
-
----
-
-## Setup (10 minutes, no coding required)
-
-### 1. Create a GitHub repository
-1. Go to https://github.com/new
-2. Name it anything (e.g. `boutique-catalogue`) — set visibility to **Public**
-3. Click **Create repository**
-
-### 2. Upload all these files
-Drag-and-drop the entire contents of this folder into your new repo via the
-GitHub web interface (click **Add file → Upload files**).
-
-### 3. Enable GitHub Pages
-1. Repo → **Settings** → **Pages**
-2. Source: **Deploy from a branch** | Branch: **main** | Folder: **/ (root)**
-3. Click **Save**
-
-Your site goes live at:
-`https://<your-username>.github.io/<repo-name>/`
-
-### 4. Fill in your brand details
-Edit `catalogue.json` — update the `site` block with your real info:
-```json
-{
-  "site": {
-    "name":        "Your Boutique Name",
-    "tagline":     "Bridal Couture & High Fashion",
-    "location":    "960 Route 9 South, Suite [#], Sayreville, NJ 08872",
-    "phone":       "+1 (732) 000-0000",
-    "email":       "hello@yourbrand.com",
-    "instagram":   "@yourbrand",
-    "booking_url": "https://calendly.com/yourlink",
-    "hours":       "Tue–Sat, By Appointment"
-  }
-}
-```
-Commit the change — the site rebuilds automatically within ~60 seconds.
 
 ---
 
@@ -152,5 +113,3 @@ GitHub Pages serves the updated site (~60 sec)
            ↓
 QR code on business cards → always shows current catalogue
 ```
-
-*Hosting cost: $0. Actions cost: $0 (well within free tier).*
