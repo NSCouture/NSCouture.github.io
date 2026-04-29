@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="NS Couture — High bridal couture, occasion dressing, and quietly luxurious tailoring. Located in 960 Route 9 South, Suite [#], Sayreville, NJ 08872.">
+  <meta name="theme-color" content="#FAF8F5">
+  <meta property="og:title" content="NS Couture">
+  <meta property="og:description" content="High bridal couture, occasion dressing, and quietly luxurious tailoring. Couture atelier in Sayreville, NJ.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nscouture.github.io">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="NS Couture">
+  <meta name="twitter:description" content="High bridal couture, occasion dressing, and quietly luxurious tailoring.">
   <title>NS Couture</title>
 
   <!--
@@ -348,13 +356,13 @@
     }
     .hero-title {
       margin: 0;
-      max-width: 10ch;
       font-family: var(--font-display);
-      font-weight: clamp(300, 1vw + 280, 400);
+      font-weight: 300;
       font-style: italic;
       letter-spacing: 0.04em;
       font-size: var(--text-hero);
       line-height: 0.94;
+      white-space: nowrap;
     }
     .hero-title .char { display: inline-block; }
     .hero-subtitle {
@@ -637,17 +645,23 @@
       text-transform: uppercase;
       transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
       box-shadow: 0 14px 32px rgba(139, 115, 85, 0.22);
+      margin-top: var(--space-2);
+      margin-bottom: var(--space-8);
     }
     .btn-booking:hover {
       background: var(--color-accent-hover);
       transform: translateY(-2px);
       box-shadow: 0 18px 40px rgba(110, 90, 64, 0.24);
     }
+    .contact-section .container--narrow {
+      text-align: center;
+    }
     .contact-details {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
       gap: var(--space-5);
       margin-top: var(--space-10);
+      text-align: left;
     }
     .contact-block {
       display: grid;
@@ -792,7 +806,7 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
             </svg>
           </button>
-          
+          <a href="#contact" class="header-cta">Book a Visit</a>
         </div>
       </div>
     </div>
@@ -800,9 +814,9 @@
 
   <section class="hero" aria-label="Welcome">
     <div class="hero-bg" aria-hidden="true"></div>
-    <img class="hero-corner" src="assets/svg/corner.svg" alt="" aria-hidden="true">
-    <img class="hero-monogram" src="assets/svg/monogram.svg" alt="" aria-hidden="true">
-    <img class="hero-petals" src="assets/svg/petals.svg" alt="" aria-hidden="true">
+    <img class="hero-corner" src="assets/svg/corner.svg" alt="" aria-hidden="true" loading="lazy">
+    <img class="hero-monogram" src="assets/svg/monogram.svg" alt="" aria-hidden="true" loading="lazy">
+    <img class="hero-petals" src="assets/svg/petals.svg" alt="" aria-hidden="true" loading="lazy">
     <div class="container--narrow hero-inner">
       <p class="hero-eyebrow">Sayreville, NJ 08872</p>
       <h1 class="hero-title" data-split-text>NS Couture</h1>
@@ -840,7 +854,7 @@
           <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
         </div>
         <p class="contact-subtitle">Every piece is shaped around the wearer. Schedule a private appointment to explore the full collection in person.</p>
-        
+        <a href="mailto:hello@nscouture.com" class="btn-booking">Request an Appointment</a>
         <div class="contact-details">
           <div class="contact-block"><span class="contact-label">Location</span><span class="contact-value">960 Route 9 South, Suite [#], Sayreville, NJ 08872</span></div>
           <div class="contact-block"><span class="contact-label">Hours</span><span class="contact-value">Tue–Sat, By Appointment</span></div>
