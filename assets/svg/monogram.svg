@@ -1,0 +1,21 @@
+<svg width="420" height="420" viewBox="0 0 420 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .glyph {
+      fill: #8B7355;
+      opacity: 0.08;
+      animation: pulse 8s ease-in-out infinite;
+    }
+    .ring {
+      stroke: #D4C4A8;
+      stroke-width: 1;
+      opacity: 0.25;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.05; }
+      50% { opacity: 0.12; }
+    }
+  </style>
+  <circle class="ring" cx="210" cy="210" r="176" />
+  <path class="glyph" d="M122 292V128H149L244 249V128H272V292H245L150 171V292H122Z" />
+  <path class="glyph" d="M300 160C286 146 258 142 240 153C223 163 216 189 230 202C243 214 266 213 282 219C305 228 313 258 294 276C274 295 239 296 214 281L227 258C244 270 268 272 281 261C292 251 289 235 276 229C259 221 231 222 216 208C199 192 203 162 224 147C249 129 287 132 314 149L300 160Z" />
+</svg>
