@@ -3,7 +3,16 @@
 Catalogue Generator
 -------------------
 Scans /images, cross-references catalogue.json metadata,
-and rebuilds index.html.
+and patches index.html in-place.
+
+Only the three dynamic regions are ever touched:
+  - The catalogue grid (card items)
+  - The filter bar (category buttons)
+  - The footer "Last updated" timestamp
+
+Every other part of index.html — styles, colours, copy,
+structure — is preserved exactly as written. Design changes
+made directly to index.html will never be overwritten.
 
 Run automatically by GitHub Actions on every push that
 touches the images/ folder. Also runnable locally:
@@ -15,7 +24,6 @@ import json
 import pathlib
 import re
 from datetime import datetime, timezone
-from string import Template
 from urllib.parse import quote
 
 ROOT = pathlib.Path(__file__).parent.parent
@@ -25,1051 +33,17 @@ OUTPUT = ROOT / "index.html"
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"}
 OVERLAY_DEFAULT_TEXT = "View full-size image."
 
-BRAND_LOGO = """<svg class="brand-logo" viewBox="0 0 88 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <path class="logo-path" d="M9 29V7L28 29V7" pathLength="100" />
-  <path class="logo-path" d="M54 9C49 5 38 6 38 14C38 24 56 18 56 27C56 33 45 33 39 28" pathLength="100" />
-  <path class="logo-path" d="M67 18H81" pathLength="100" />
-</svg>"""
-
-HTML_TMPL = Template("""<!DOCTYPE html>
-<html lang="en" data-theme="light">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="$meta_description">
-  <title>$name</title>
-
-  <!--
-  =====================================================================
-  FONTS — Load order matters: Fontshare first, then Google Fonts.
-  =====================================================================
-  -->
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400;1,600&family=Cormorant+SC:wght@300;400&family=Didact+Gothic&display=swap" rel="stylesheet">
-
-  <style>
-    /*
-    =====================================================================
-    DESIGN TOKENS
-    All brand decisions live here. Hand this block to Claude Design
-    or edit these variables to restyle the entire site instantly.
-    =====================================================================
-    */
-    :root,
-    [data-theme="light"] {
-      --color-bg:             #FAF8F5;
-      --color-surface:        #F5F3EE;
-      --color-surface-2:      #EFECE6;
-      --color-surface-offset: #E8E4DC;
-      --color-divider:        #D9D4C9;
-      --color-border:         rgba(40, 37, 29, 0.10);
-      --color-text:           #1C1A16;
-      --color-text-muted:     #6B6660;
-      --color-text-faint:     #ADA89F;
-      --color-accent:         #8B7355;
-      --color-accent-hover:   #6E5A40;
-      --color-accent-light:   #D4C4A8;
-      --color-bg-dark:        #141210;
-      --color-surface-dark:   #1A1815;
-      --color-text-dark:      #E8E4DC;
-      --color-accent-dark:    #C9A96E;
-      --font-display: 'Cormorant Garamond', Georgia, serif;
-      --font-display-secondary: 'Didact Gothic', 'Helvetica Neue', sans-serif;
-      --font-body: 'Satoshi', 'Helvetica Neue', Arial, sans-serif;
-      --font-accent: 'Cormorant SC', 'Cormorant Garamond', serif;
-      --text-2xs:  clamp(0.68rem, 0.64rem + 0.12vw, 0.76rem);
-      --text-xs:   clamp(0.78rem, 0.73rem + 0.2vw, 0.92rem);
-      --text-sm:   clamp(0.92rem, 0.86rem + 0.28vw, 1.02rem);
-      --text-base: clamp(1rem, 0.96rem + 0.26vw, 1.12rem);
-      --text-lg:   clamp(1.18rem, 1.02rem + 0.8vw, 1.62rem);
-      --text-xl:   clamp(1.58rem, 1.16rem + 1.4vw, 2.3rem);
-      --text-2xl:  clamp(2.2rem, 1.4rem + 2.2vw, 3.8rem);
-      --text-hero: clamp(2.9rem, 1.4rem + 4.8vw, 6rem);
-      --space-1: 0.25rem;
-      --space-2: 0.5rem;
-      --space-3: 0.75rem;
-      --space-4: 1rem;
-      --space-5: 1.25rem;
-      --space-6: 1.5rem;
-      --space-8: 2rem;
-      --space-10: 2.5rem;
-      --space-12: 3rem;
-      --space-16: 4rem;
-      --space-20: 5rem;
-      --space-24: 6rem;
-      --space-32: 8rem;
-      --radius-sm: 0.35rem;
-      --radius-md: 0.75rem;
-      --radius-lg: 1.25rem;
-      --radius-pill: 999px;
-      --shadow-sm: 0 12px 32px rgba(28, 26, 22, 0.06);
-      --shadow-md: 0 20px 60px rgba(28, 26, 22, 0.12);
-      --content-default: 1240px;
-      --content-narrow: 780px;
-      --transition: 300ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    [data-theme="dark"] {
-      --color-bg: var(--color-bg-dark);
-      --color-surface: var(--color-surface-dark);
-      --color-surface-2: #201D19;
-      --color-surface-offset: #28241E;
-      --color-divider: rgba(232, 228, 220, 0.12);
-      --color-border: rgba(232, 228, 220, 0.10);
-      --color-text: var(--color-text-dark);
-      --color-text-muted: #B2ADA3;
-      --color-text-faint: #726D66;
-      --color-accent: var(--color-accent-dark);
-      --color-accent-hover: #E1C08A;
-      --color-accent-light: rgba(201, 169, 110, 0.16);
-      --shadow-sm: 0 18px 36px rgba(0, 0, 0, 0.25);
-      --shadow-md: 0 28px 80px rgba(0, 0, 0, 0.35);
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root:not([data-theme]) {
-        --color-bg: var(--color-bg-dark);
-        --color-surface: var(--color-surface-dark);
-        --color-surface-2: #201D19;
-        --color-surface-offset: #28241E;
-        --color-divider: rgba(232, 228, 220, 0.12);
-        --color-border: rgba(232, 228, 220, 0.10);
-        --color-text: var(--color-text-dark);
-        --color-text-muted: #B2ADA3;
-        --color-text-faint: #726D66;
-        --color-accent: var(--color-accent-dark);
-        --color-accent-hover: #E1C08A;
-        --color-accent-light: rgba(201, 169, 110, 0.16);
-        --shadow-sm: 0 18px 36px rgba(0, 0, 0, 0.25);
-        --shadow-md: 0 28px 80px rgba(0, 0, 0, 0.35);
-      }
-    }
-
-    *, *::before, *::after { box-sizing: border-box; }
-    html {
-      scroll-behavior: smooth;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: optimizeLegibility;
-      scroll-padding-top: var(--space-20);
-    }
-    body {
-      margin: 0;
-      min-height: 100dvh;
-      font-family: var(--font-body);
-      font-size: var(--text-base);
-      color: var(--color-text);
-      background:
-        radial-gradient(circle at top left, rgba(212, 196, 168, 0.18), transparent 32%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 28%),
-        var(--color-bg);
-      line-height: 1.65;
-      overflow-x: hidden;
-    }
-    img { display: block; max-width: 100%; height: auto; }
-    a { color: inherit; text-decoration: none; }
-    button { cursor: pointer; background: none; border: 0; font: inherit; color: inherit; }
-    :focus-visible {
-      outline: 2px solid var(--color-accent);
-      outline-offset: 4px;
-      border-radius: var(--radius-sm);
-    }
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-      }
-    }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
-
-    .container,
-    .container--narrow {
-      width: min(100%, var(--content-default));
-      margin-inline: auto;
-      padding-inline: clamp(var(--space-4), 4vw, var(--space-10));
-    }
-    .container--narrow { width: min(100%, var(--content-narrow)); }
-
-    .site-header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      padding-block: var(--space-4);
-      background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border-bottom: 1px solid var(--color-divider);
-    }
-    .header-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: var(--space-4);
-    }
-    .site-logo {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-4);
-      min-height: 44px;
-      color: var(--color-text);
-    }
-    .site-logo-mark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 3.9rem;
-      height: 2.8rem;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-pill);
-      background: rgba(255, 255, 255, 0.35);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
-    }
-    .brand-logo {
-      width: 3rem;
-      color: var(--color-accent);
-    }
-    .brand-logo .logo-path {
-      stroke: currentColor;
-      stroke-width: 1.45;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .site-logo-copy {
-      display: flex;
-      flex-direction: column;
-      gap: 0.05rem;
-    }
-    .site-logo-name {
-      font-family: var(--font-display);
-      font-style: italic;
-      font-weight: 400;
-      letter-spacing: 0.08em;
-      font-size: clamp(1.3rem, 1rem + 0.7vw, 1.8rem);
-      line-height: 1;
-    }
-    .site-logo-tag {
-      font-family: var(--font-accent);
-      font-size: var(--text-2xs);
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-    }
-    .theme-toggle,
-    .header-cta {
-      min-width: 44px;
-      min-height: 44px;
-      border-radius: var(--radius-pill);
-    }
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      color: var(--color-text-muted);
-      border: 1px solid var(--color-border);
-      transition: color var(--transition), border-color var(--transition), background var(--transition);
-    }
-    .theme-toggle:hover {
-      color: var(--color-text);
-      border-color: var(--color-accent-light);
-      background: rgba(255, 255, 255, 0.45);
-    }
-    .header-cta {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0 var(--space-5);
-      font-size: var(--text-2xs);
-      font-family: var(--font-display-secondary);
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-      color: var(--color-accent);
-      border: 1px solid color-mix(in srgb, var(--color-accent) 38%, transparent);
-      background: color-mix(in srgb, var(--color-bg) 80%, transparent);
-      transition: color var(--transition), border-color var(--transition), background var(--transition);
-    }
-    .header-cta:hover {
-      color: var(--color-bg);
-      border-color: var(--color-accent);
-      background: var(--color-accent);
-    }
-
-    .hero {
-      position: relative;
-      isolation: isolate;
-      overflow: clip;
-      padding-block: clamp(var(--space-16), 16vw, var(--space-32));
-      border-bottom: 1px solid var(--color-divider);
-    }
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      z-index: -3;
-      background:
-        radial-gradient(circle at 30% 12%, rgba(212, 196, 168, 0.38), transparent 22%),
-        radial-gradient(circle at 80% 28%, rgba(139, 115, 85, 0.18), transparent 24%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 50%);
-      transform: translateY(0);
-    }
-    .hero-monogram,
-    .hero-corner,
-    .hero-petals {
-      position: absolute;
-      pointer-events: none;
-      user-select: none;
-    }
-    .hero-monogram {
-      right: clamp(-4rem, -3vw, -1rem);
-      top: clamp(2rem, 10vw, 6rem);
-      width: min(56vw, 34rem);
-      opacity: 0.18;
-      z-index: -2;
-      mix-blend-mode: multiply;
-    }
-    .hero-corner {
-      left: 0;
-      top: 0;
-      width: min(22vw, 12rem);
-      opacity: 0.75;
-      z-index: -2;
-    }
-    .hero-petals {
-      right: clamp(1rem, 5vw, 4rem);
-      bottom: clamp(1rem, 4vw, 3rem);
-      width: min(20vw, 9rem);
-      opacity: 0.45;
-      z-index: -1;
-    }
-    .hero-inner {
-      position: relative;
-      display: grid;
-      justify-items: center;
-      gap: var(--space-6);
-      text-align: center;
-    }
-    .hero-eyebrow,
-    .section-label,
-    .overlay-category,
-    .contact-label {
-      font-family: var(--font-accent);
-      font-size: var(--text-xs);
-      font-weight: 400;
-      letter-spacing: 0.24em;
-      text-transform: uppercase;
-    }
-    .hero-eyebrow {
-      color: var(--color-accent);
-    }
-    .hero-title {
-      margin: 0;
-      max-width: 10ch;
-      font-family: var(--font-display);
-      font-weight: clamp(300, 1vw + 280, 400);
-      font-style: italic;
-      letter-spacing: 0.04em;
-      font-size: var(--text-hero);
-      line-height: 0.94;
-    }
-    .hero-title .char { display: inline-block; }
-    .hero-subtitle {
-      max-width: 40ch;
-      margin: 0;
-      font-size: var(--text-base);
-      color: var(--color-text-muted);
-      letter-spacing: 0.04em;
-    }
-    .hero-divider {
-      width: min(240px, 62vw);
-      color: var(--color-accent);
-      opacity: 0.8;
-    }
-    .hero-note {
-      max-width: 38ch;
-      font-size: var(--text-sm);
-      color: var(--color-text-faint);
-    }
-
-    .catalogue-section,
-    .contact-section {
-      padding-block: clamp(var(--space-16), 10vw, var(--space-24));
-    }
-    .section-header {
-      display: grid;
-      justify-items: center;
-      gap: var(--space-4);
-      margin-bottom: var(--space-10);
-      text-align: center;
-    }
-    .section-title,
-    .contact-title {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: 300;
-      font-style: italic;
-      letter-spacing: 0.04em;
-      line-height: 1;
-    }
-    .section-label {
-      color: var(--color-text-faint);
-    }
-    .section-divider {
-      width: min(280px, 58vw);
-      color: var(--color-accent);
-      margin-inline: auto;
-      opacity: 0.82;
-    }
-
-    .filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: var(--space-2);
-      margin-bottom: var(--space-10);
-    }
-    .filter-btn {
-      min-height: 44px;
-      padding: 0 var(--space-4);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-pill);
-      font-size: var(--text-2xs);
-      font-family: var(--font-display-secondary);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: var(--color-text-muted);
-      transition: color var(--transition), border-color var(--transition), background var(--transition);
-    }
-    .filter-btn:hover,
-    .filter-btn.active {
-      color: var(--color-accent);
-      border-color: color-mix(in srgb, var(--color-accent) 48%, transparent);
-      background: color-mix(in srgb, var(--color-accent-light) 26%, transparent);
-    }
-
-    .catalogue-grid {
-      display: grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap: clamp(var(--space-4), 2vw, var(--space-6));
-      align-items: stretch;
-    }
-    .item-card {
-      position: relative;
-      grid-column: span 6;
-      display: grid;
-      grid-template-rows: auto 1fr;
-      overflow: clip;
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--color-border);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12)), var(--color-surface);
-      box-shadow: var(--shadow-sm);
-      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-    }
-    .item-card:hover,
-    .item-card:focus-within {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-md);
-      border-color: color-mix(in srgb, var(--color-accent) 28%, var(--color-border));
-    }
-    .item-img-wrap {
-      position: relative;
-      aspect-ratio: 3 / 4;
-      overflow: hidden;
-      background: var(--color-surface-2);
-    }
-    .item-img-wrap img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), filter 500ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .item-card:hover .item-img-wrap img,
-    .item-card:focus-within .item-img-wrap img {
-      transform: scale(1.05);
-      filter: saturate(0.96) contrast(1.04);
-    }
-    .item-overlay {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      gap: var(--space-3);
-      padding: var(--space-6);
-      background: linear-gradient(180deg, rgba(28, 26, 22, 0.08), rgba(28, 26, 22, 0.74));
-      color: var(--color-surface);
-      opacity: 0;
-      transform: translateY(8px);
-      transition: opacity var(--transition), transform var(--transition);
-    }
-    .item-card:hover .item-overlay,
-    .item-card:focus-within .item-overlay {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .overlay-category {
-      color: rgba(250, 248, 245, 0.78);
-    }
-    .overlay-title {
-      margin: 0;
-      font-family: var(--font-display);
-      font-style: italic;
-      font-weight: 400;
-      font-size: clamp(1.4rem, 1rem + 1vw, 2rem);
-      line-height: 1;
-      transform: translateY(12px);
-      transition: transform 350ms 40ms cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .item-card:hover .overlay-title,
-    .item-card:focus-within .overlay-title {
-      transform: translateY(0);
-    }
-    .overlay-desc {
-      margin: 0;
-      max-width: 26ch;
-      font-size: var(--text-sm);
-      color: rgba(250, 248, 245, 0.84);
-    }
-    .card-link {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      min-height: 44px;
-      padding: 0 var(--space-4);
-      border: 1px solid rgba(250, 248, 245, 0.4);
-      border-radius: var(--radius-pill);
-      font-size: var(--text-2xs);
-      font-family: var(--font-display-secondary);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      transition: background var(--transition), border-color var(--transition), color var(--transition);
-    }
-    .card-link:hover,
-    .card-link:focus-visible {
-      color: var(--color-text);
-      background: var(--color-surface);
-      border-color: var(--color-surface);
-      outline-color: var(--color-surface);
-    }
-    .item-info {
-      display: grid;
-      gap: var(--space-2);
-      padding: var(--space-5);
-      background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,0.16));
-    }
-    .item-cat {
-      color: var(--color-accent);
-      font-family: var(--font-accent);
-      font-size: var(--text-2xs);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-    }
-    .item-name {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
-      font-weight: 400;
-      font-style: italic;
-      line-height: 1.1;
-    }
-    .item-desc {
-      margin: 0;
-      font-size: var(--text-sm);
-      color: var(--color-text-muted);
-    }
-    .empty-state {
-      grid-column: 1 / -1;
-      padding: var(--space-20) var(--space-6);
-      text-align: center;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.15)), var(--color-surface);
-      color: var(--color-text-muted);
-    }
-    .empty-state p {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
-      font-style: italic;
-    }
-
-    @media (min-width: 900px) {
-      .item-card:nth-child(6n + 1) { grid-column: span 8; }
-      .item-card:nth-child(6n + 2) { grid-column: span 4; }
-      .item-card:nth-child(6n + 3),
-      .item-card:nth-child(6n + 4),
-      .item-card:nth-child(6n + 5) { grid-column: span 4; }
-      .item-card:nth-child(6n + 6) { grid-column: span 8; }
-    }
-    @media (max-width: 899px) {
-      .catalogue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .item-card { grid-column: span 1; }
-    }
-    @media (max-width: 640px) {
-      .site-logo-copy { display: none; }
-      .header-actions { gap: var(--space-2); }
-      .header-cta { padding-inline: var(--space-4); }
-      .catalogue-grid { grid-template-columns: 1fr; }
-      .item-card { grid-column: 1 / -1; }
-      .contact-details { grid-template-columns: 1fr; }
-    }
-
-    .contact-section {
-      position: relative;
-      isolation: isolate;
-      background:
-        radial-gradient(circle at top right, rgba(212, 196, 168, 0.24), transparent 26%),
-        linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 92%, transparent), var(--color-surface));
-      border-top: 1px solid var(--color-divider);
-    }
-    .contact-section::before {
-      content: "";
-      position: absolute;
-      inset-inline: 10%;
-      top: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--color-accent-light), transparent);
-      opacity: 0.65;
-    }
-    .contact-subtitle {
-      margin: 0 auto var(--space-8);
-      max-width: 42ch;
-      font-size: var(--text-base);
-      color: var(--color-text-muted);
-    }
-    .btn-booking {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 48px;
-      padding: 0 var(--space-8);
-      border-radius: var(--radius-pill);
-      background: var(--color-accent);
-      color: var(--color-bg);
-      font-size: var(--text-xs);
-      font-family: var(--font-display-secondary);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
-      box-shadow: 0 14px 32px rgba(139, 115, 85, 0.22);
-    }
-    .btn-booking:hover {
-      background: var(--color-accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 18px 40px rgba(110, 90, 64, 0.24);
-    }
-    .contact-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: var(--space-5);
-      margin-top: var(--space-10);
-    }
-    .contact-block {
-      display: grid;
-      gap: var(--space-2);
-      padding: var(--space-5);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.28);
-    }
-    .contact-label {
-      color: var(--color-text-faint);
-      font-size: var(--text-2xs);
-    }
-    .contact-value,
-    .contact-link {
-      font-size: var(--text-sm);
-      color: var(--color-text-muted);
-    }
-    .contact-link:hover { color: var(--color-accent); }
-
-    .site-footer {
-      padding-block: var(--space-8);
-      border-top: 1px solid var(--color-divider);
-    }
-    .footer-inner {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-2);
-      text-align: center;
-    }
-    .footer-brand {
-      font-family: var(--font-display);
-      font-style: italic;
-      font-size: var(--text-lg);
-      color: var(--color-text-muted);
-      letter-spacing: 0.08em;
-    }
-    .footer-meta {
-      font-size: var(--text-2xs);
-      color: var(--color-text-faint);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .cursor-dot,
-    .cursor-ring {
-      position: fixed;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      opacity: 0;
-      z-index: 9999;
-      transition: opacity 200ms ease;
-    }
-    .cursor-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--color-accent);
-      z-index: 10000;
-    }
-    .cursor-ring {
-      width: 32px;
-      height: 32px;
-      border: 1px solid rgba(139, 115, 85, 0.5);
-      border-radius: 50%;
-      z-index: 9998;
-      transition:
-        transform 400ms cubic-bezier(0.16, 1, 0.3, 1),
-        width 300ms ease,
-        height 300ms ease,
-        opacity 200ms ease;
-    }
-    @media (pointer: fine) {
-      html.has-custom-cursor,
-      html.has-custom-cursor a,
-      html.has-custom-cursor button {
-        cursor: none;
-      }
-      html.has-cursor-hover .cursor-ring {
-        width: 64px;
-        height: 64px;
-      }
-    }
-
-    @supports (animation-timeline: view()) {
-      .item-card {
-        opacity: 0;
-        animation: reveal-card linear both;
-        animation-timeline: view();
-        animation-range: entry 0% entry 55%;
-      }
-      .section-heading {
-        clip-path: inset(0 100% 0 0);
-        animation: reveal-heading linear both;
-        animation-timeline: view();
-        animation-range: entry 0% entry 85%;
-      }
-      .hero-bg {
-        animation: parallax-scroll linear both;
-        animation-timeline: scroll(root);
-        animation-range: 0% 50%;
-      }
-    }
-
-    @keyframes reveal-card {
-      from { opacity: 0; filter: blur(4px); }
-      to { opacity: 1; filter: blur(0); }
-    }
-    @keyframes reveal-heading {
-      to { clip-path: inset(0 0 0 0); }
-    }
-    @keyframes parallax-scroll {
-      from { transform: translateY(0); }
-      to { transform: translateY(40px); }
-    }
-  </style>
-</head>
-<body>
-  <a href="#catalogue" class="sr-only">Skip to catalogue</a>
-  <div class="cursor-dot" aria-hidden="true"></div>
-  <div class="cursor-ring" aria-hidden="true"></div>
-
-  <header class="site-header">
-    <div class="container">
-      <div class="header-inner">
-        <a href="#" class="site-logo" aria-label="$name home">
-          <span class="site-logo-mark">$brand_logo</span>
-          <span class="site-logo-copy">
-            <span class="site-logo-name">$name</span>
-            <span class="site-logo-tag">Couture Atelier</span>
-          </span>
-        </a>
-        <div class="header-actions">
-          <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-            </svg>
-          </button>
-          $header_cta
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <section class="hero" aria-label="Welcome">
-    <div class="hero-bg" aria-hidden="true"></div>
-    <img class="hero-corner" src="assets/svg/corner.svg" alt="" aria-hidden="true">
-    <img class="hero-monogram" src="assets/svg/monogram.svg" alt="" aria-hidden="true">
-    <img class="hero-petals" src="assets/svg/petals.svg" alt="" aria-hidden="true">
-    <div class="container--narrow hero-inner">
-      <p class="hero-eyebrow">$hero_eyebrow</p>
-      <h1 class="hero-title" data-split-text>$name</h1>
-      <p class="hero-subtitle">$tagline</p>
-      <img class="hero-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
-      <p class="hero-note">Quiet confidence, tactile detail, and an editorial catalogue designed to feel like the atelier itself.</p>
-    </div>
-  </section>
-
-  <main>
-    <section class="catalogue-section" id="catalogue" aria-label="Catalogue">
-      <div class="container">
-        <div class="section-header section-heading">
-          <p class="section-label">Current Collection</p>
-          <h2 class="section-title">The Catalogue</h2>
-          <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
-        </div>
-        $cat_nav
-        <div class="catalogue-grid" id="catalogue-grid">
-$cards
-        </div>
-      </div>
-    </section>
-
-    <section class="contact-section" id="contact" aria-label="Book a consultation">
-      <div class="container--narrow">
-        <div class="section-header section-heading">
-          <p class="section-label">Private Appointments</p>
-          <h2 class="contact-title">Book a Consultation</h2>
-          <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
-        </div>
-        <p class="contact-subtitle">Every piece is shaped around the wearer. Schedule a private appointment to explore the full collection in person.</p>
-        $booking_btn
-        <div class="contact-details">
-$contact_blocks
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <span class="footer-brand">$name</span>
-      <span class="footer-meta">&copy; $year $name &mdash; All rights reserved</span>
-      <span class="footer-meta">Last updated: $built_at</span>
-    </div>
-  </footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
-  <script>
-    (function () {
-      const root = document.documentElement;
-      const storageKey = 'ns-couture-theme';
-      const toggle = document.querySelector('[data-theme-toggle]');
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-
-      function icon(mode) {
-        return mode === 'dark'
-          ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
-          : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-      }
-
-      function applyTheme(mode) {
-        root.setAttribute('data-theme', mode);
-        if (toggle) {
-          toggle.innerHTML = icon(mode);
-          toggle.setAttribute('aria-label', 'Switch to ' + (mode === 'dark' ? 'light' : 'dark') + ' mode');
-        }
-      }
-
-      let mode = 'light';
-      try {
-        mode = localStorage.getItem(storageKey) || (prefersDark.matches ? 'dark' : 'light');
-      } catch (error) {
-        mode = prefersDark.matches ? 'dark' : 'light';
-      }
-      applyTheme(mode);
-
-      if (toggle) {
-        toggle.addEventListener('click', function () {
-          mode = mode === 'dark' ? 'light' : 'dark';
-          applyTheme(mode);
-          try { localStorage.setItem(storageKey, mode); } catch (error) {}
-        });
-      }
-
-      prefersDark.addEventListener('change', function (event) {
-        try {
-          if (!localStorage.getItem(storageKey)) {
-            mode = event.matches ? 'dark' : 'light';
-            applyTheme(mode);
-          }
-        } catch (error) {
-          mode = event.matches ? 'dark' : 'light';
-          applyTheme(mode);
-        }
-      });
-
-      document.querySelectorAll('.filter-btn').forEach(function (button) {
-        button.setAttribute('aria-pressed', button.classList.contains('active') ? 'true' : 'false');
-        button.addEventListener('click', function () {
-          const category = button.dataset.category;
-          document.querySelectorAll('.filter-btn').forEach(function (candidate) {
-            const isActive = candidate === button;
-            candidate.classList.toggle('active', isActive);
-            candidate.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-          });
-          document.querySelectorAll('.item-card').forEach(function (card) {
-            const shouldShow = category === 'all' || card.dataset.category === category;
-            card.hidden = !shouldShow;
-          });
-        });
-      });
-
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const title = document.querySelector('[data-split-text]');
-      if (title && !prefersReducedMotion) {
-        const text = title.textContent.trim();
-        const fragment = document.createDocumentFragment();
-        Array.from(text).forEach(function (char) {
-          const span = document.createElement('span');
-          span.className = 'char';
-          span.textContent = char === ' ' ? '\\u00A0' : char;
-          fragment.appendChild(span);
-        });
-        title.textContent = '';
-        title.appendChild(fragment);
-      }
-
-      if (window.gsap && window.ScrollTrigger && !prefersReducedMotion) {
-        gsap.registerPlugin(ScrollTrigger);
-
-        document.querySelectorAll('.brand-logo .logo-path').forEach(function (path) {
-          const length = path.getTotalLength();
-          gsap.set(path, { strokeDasharray: length, strokeDashoffset: length });
-        });
-
-        gsap.to('.brand-logo .logo-path', {
-          strokeDashoffset: 0,
-          duration: 1.6,
-          stagger: 0.14,
-          ease: 'power3.inOut',
-          delay: 0.15
-        });
-
-        if (title) {
-          gsap.from('.hero-title .char', {
-            opacity: 0,
-            duration: 0.8,
-            stagger: 0.03,
-            ease: 'power3.out',
-            delay: 0.25
-          });
-        }
-
-        gsap.from('.hero-eyebrow, .hero-subtitle, .hero-note, .hero-divider', {
-          opacity: 0,
-          duration: 0.9,
-          stagger: 0.08,
-          ease: 'power2.out',
-          delay: 0.35
-        });
-
-        gsap.from('.catalogue-grid .item-card', {
-          opacity: 0,
-          duration: 0.65,
-          stagger: 0.08,
-          ease: 'power2.out',
-          scrollTrigger: {
-            trigger: '#catalogue-grid',
-            start: 'top 78%'
-          }
-        });
-      }
-
-      const finePointer = window.matchMedia('(pointer: fine)').matches;
-      const cursor = document.querySelector('.cursor-dot');
-      const ring = document.querySelector('.cursor-ring');
-      if (finePointer && cursor && ring && !prefersReducedMotion) {
-        root.classList.add('has-custom-cursor');
-        let mouseX = 0;
-        let mouseY = 0;
-        let ringX = 0;
-        let ringY = 0;
-
-        document.addEventListener('mousemove', function (event) {
-          mouseX = event.clientX;
-          mouseY = event.clientY;
-          cursor.style.opacity = '1';
-          ring.style.opacity = '1';
-        });
-
-        document.addEventListener('mouseleave', function () {
-          cursor.style.opacity = '0';
-          ring.style.opacity = '0';
-          root.classList.remove('has-cursor-hover');
-        });
-
-        document.querySelectorAll('a, button, .item-card').forEach(function (node) {
-          node.addEventListener('mouseenter', function () { root.classList.add('has-cursor-hover'); });
-          node.addEventListener('mouseleave', function () { root.classList.remove('has-cursor-hover'); });
-          node.addEventListener('focus', function () { root.classList.add('has-cursor-hover'); });
-          node.addEventListener('blur', function () { root.classList.remove('has-cursor-hover'); });
-        });
-
-        function animateCursor() {
-          ringX += (mouseX - ringX) * 0.12;
-          ringY += (mouseY - ringY) * 0.12;
-          cursor.style.transform = 'translate(' + (mouseX - 4) + 'px, ' + (mouseY - 4) + 'px)';
-          ring.style.transform = 'translate(' + (ringX - ring.offsetWidth / 2) + 'px, ' + (ringY - ring.offsetHeight / 2) + 'px)';
-          requestAnimationFrame(animateCursor);
-        }
-        animateCursor();
-      }
-    }());
-  </script>
-</body>
-</html>""")
-
 
 def slug_to_title(s):
     return re.sub(r"[-_]+", " ", pathlib.Path(s).stem).title()
 
 
-def text(value):
+def esc(value):
     return html.escape(str(value), quote=True)
 
 
 def image_src(filename):
     return f"images/{quote(str(filename))}"
-
-
-def eyebrow_location(location):
-    parts = [part.strip() for part in str(location).split(",") if part.strip()]
-    if len(parts) >= 2:
-        return ", ".join(parts[-2:])
-    return str(location).strip()
 
 
 def load_meta():
@@ -1085,9 +59,11 @@ def save_meta(data):
 
 
 def sync(data):
-    """Add new images; remove orphaned entries."""
+    """Add new images to catalogue.json; remove entries for deleted images."""
     existing = {i["filename"] for i in data.get("items", [])}
-    image_files = sorted(f for f in IMAGES_DIR.iterdir() if f.suffix.lower() in IMAGE_EXTS)
+    image_files = sorted(
+        f for f in IMAGES_DIR.iterdir() if f.suffix.lower() in IMAGE_EXTS
+    )
 
     added = 0
     for img in image_files:
@@ -1109,26 +85,11 @@ def sync(data):
 
     if added or removed:
         save_meta(data)
-        print(f"  +{added} added, -{removed} removed from catalogue.json")
+        print(f"  catalogue.json: +{added} added, -{removed} removed")
     return data
 
 
-def cat_nav(categories):
-    if not categories:
-        return ""
-    buttons = "\n".join(
-        f'          <button class="filter-btn" data-category="{text(category)}">{text(category)}</button>'
-        for category in categories if category
-    )
-    return (
-        '        <div class="filter-bar" role="group" aria-label="Filter by category">\n'
-        '          <button class="filter-btn active" data-category="all">All</button>\n'
-        f'{buttons}\n'
-        '        </div>'
-    )
-
-
-def cards(items):
+def render_cards(items):
     visible = sorted(
         [i for i in items if i.get("available", True)],
         key=lambda item: (item.get("order", 9999), item.get("name", "")),
@@ -1138,12 +99,16 @@ def cards(items):
 
     out = []
     for item in visible:
-        name = text(item.get("name", slug_to_title(item["filename"])))
-        desc = text(item.get("description", ""))
-        category = text(item.get("category", ""))
+        name = esc(item.get("name", slug_to_title(item["filename"])))
+        desc = esc(item.get("description", ""))
+        category = esc(item.get("category", ""))
         filename = image_src(item["filename"])
         desc_html = f'<p class="item-desc">{desc}</p>' if desc else ""
-        overlay_desc = f'<p class="overlay-desc">{desc}</p>' if desc else f'<p class="overlay-desc">{text(OVERLAY_DEFAULT_TEXT)}</p>'
+        overlay_desc = (
+            f'<p class="overlay-desc">{desc}</p>'
+            if desc
+            else f'<p class="overlay-desc">{esc(OVERLAY_DEFAULT_TEXT)}</p>'
+        )
         category_data = f' data-category="{category}"' if category else ""
         category_badge = f'<span class="item-cat">{category}</span>' if category else ""
         overlay_category = category or "Collection"
@@ -1168,75 +133,56 @@ def cards(items):
     return "\n".join(out)
 
 
-def render_html(data):
-    site = data.get("site", {})
-    raw_name = site.get("name", "NS Couture")
-    raw_tagline = site.get("tagline", "High bridal couture, occasion dressing, and quietly luxurious tailoring.")
-    raw_location = site.get("location", "")
-    raw_phone = site.get("phone", "")
-    raw_email = site.get("email", "")
-    raw_instagram = site.get("instagram", "")
-    raw_booking = site.get("booking_url", "")
-    raw_hours = site.get("hours", "By Appointment")
+def render_filter_bar(categories):
+    if not categories:
+        return ""
+    buttons = "\n".join(
+        f'          <button class="filter-btn" data-category="{esc(cat)}">{esc(cat)}</button>'
+        for cat in categories
+        if cat
+    )
+    return (
+        '        <div class="filter-bar" role="group" aria-label="Filter by category">\n'
+        '          <button class="filter-btn active" data-category="all">All</button>\n'
+        f"{buttons}\n"
+        "        </div>"
+    )
 
-    year = datetime.now(timezone.utc).year
-    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+def patch_html(source, data):
+    """Patch only the three dynamic regions in index.html, leaving everything else intact."""
     categories = data.get("categories", [])
     items = data.get("items", [])
+    built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-    name = text(raw_name)
-    tagline = text(raw_tagline)
-    location = text(raw_location)
-    phone = text(raw_phone)
-    email = text(raw_email)
-    instagram = text(raw_instagram)
-    booking = text(raw_booking)
-    hours = text(raw_hours)
+    # 1. Catalogue grid — replace all content inside id="catalogue-grid"
+    source = re.sub(
+        r'(<div class="catalogue-grid" id="catalogue-grid">)'
+        r".*?"
+        r"(</div>)",
+        lambda m: m.group(1) + "\n" + render_cards(items) + "\n        " + m.group(2),
+        source,
+        flags=re.DOTALL,
+    )
 
-    hero_eyebrow = text(eyebrow_location(raw_location)) or "Private Appointments"
-    meta_tagline = text(str(raw_tagline).rstrip(". "))
-    meta_description = f"{name} — {meta_tagline}"
-    if location:
-        meta_description = f"{meta_description}. Located in {location}."
-
-    if booking:
-        booking_btn = f'<a href="{booking}" class="btn-booking" target="_blank" rel="noopener noreferrer">Book a Consultation</a>'
-    elif email:
-        booking_btn = f'<a href="mailto:{email}" class="btn-booking">Book a Consultation</a>'
-    else:
-        booking_btn = ""
-
-    header_cta = booking_btn.replace('class="btn-booking"', 'class="header-cta"') if booking_btn else ""
-
-    blocks = []
-    if location:
-        blocks.append(f'          <div class="contact-block"><span class="contact-label">Location</span><span class="contact-value">{location}</span></div>')
-    if hours:
-        blocks.append(f'          <div class="contact-block"><span class="contact-label">Hours</span><span class="contact-value">{hours}</span></div>')
-    if phone:
-        blocks.append(f'          <div class="contact-block"><span class="contact-label">Phone</span><a href="tel:{phone}" class="contact-link">{phone}</a></div>')
-    if email:
-        blocks.append(f'          <div class="contact-block"><span class="contact-label">Email</span><a href="mailto:{email}" class="contact-link">{email}</a></div>')
-    if instagram:
-        handle = instagram.lstrip("@")
-        blocks.append(
-            f'          <div class="contact-block"><span class="contact-label">Instagram</span><a href="https://instagram.com/{handle}" class="contact-link" target="_blank" rel="noopener noreferrer">@{handle}</a></div>'
+    # 2. Filter bar — replace the entire <div class="filter-bar"…>…</div> block
+    new_nav = render_filter_bar(categories)
+    if new_nav:
+        source = re.sub(
+            r'<div class="filter-bar"[^>]*>.*?</div>',
+            new_nav,
+            source,
+            flags=re.DOTALL,
         )
 
-    return HTML_TMPL.substitute(
-        brand_logo=BRAND_LOGO,
-        name=name,
-        tagline=tagline,
-        year=year,
-        built_at=built_at,
-        hero_eyebrow=hero_eyebrow,
-        meta_description=meta_description,
-        header_cta=header_cta,
-        booking_btn=booking_btn,
-        cat_nav=cat_nav(categories),
-        cards=cards(items),
-        contact_blocks="\n".join(blocks),
+    # 3. Footer timestamp — update in place
+    source = re.sub(
+        r'(<span class="footer-meta">Last updated: )([^<]*)(</span>)',
+        rf"\g<1>{built_at}\g<3>",
+        source,
     )
+
+    return source
 
 
 def main():
@@ -1244,12 +190,12 @@ def main():
     data = load_meta()
     print("Syncing images/ ...")
     data = sync(data)
-    print("Building index.html ...")
-    rendered_html = render_html(data)
-    with open(OUTPUT, "w", encoding="utf-8") as f:
-        f.write(rendered_html)
-    visible = len([item for item in data["items"] if item.get("available", True)])
-    print(f"Done — {visible} item(s) written to index.html")
+    print("Patching index.html ...")
+    source = OUTPUT.read_text(encoding="utf-8")
+    patched = patch_html(source, data)
+    OUTPUT.write_text(patched, encoding="utf-8")
+    visible = len([i for i in data["items"] if i.get("available", True)])
+    print(f"Done — {visible} item(s) in catalogue")
 
 
 if __name__ == "__main__":

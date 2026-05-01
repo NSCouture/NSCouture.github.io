@@ -14,5 +14,14 @@
     "High Fashion",
     "Accessories"
   ],
-  "items": []
+  "items": [
+    {
+      "filename": "Alexa-Prom.jpg",
+      "name": "Alexa Prom",
+      "description": "",
+      "category": "Bridal",
+      "available": true,
+      "order": 9999
+    }
+  ]
 }
