@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="NS Couture — High bridal couture, occasion dressing, and quietly luxurious tailoring. Located in 960 Route 9 South, Suite [#], Sayreville, NJ 08872.">
+  <meta name="description" content="NS Couture — High bridal couture, occasion dressing, and quietly luxurious tailoring. Located in 499 Ernston Rd, Suite [#], Parlin, NJ 08859.">
   <meta name="theme-color" content="#FAF8F5">
   <meta property="og:title" content="NS Couture">
   <meta property="og:description" content="High bridal couture, occasion dressing, and quietly luxurious tailoring. Couture atelier in Sayreville, NJ.">
@@ -137,7 +137,7 @@
       color: var(--color-text);
       background:
         radial-gradient(circle at top left, rgba(212, 196, 168, 0.18), transparent 32%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 2%),
         var(--color-bg);
       line-height: 1.65;
       overflow-x: hidden;
@@ -177,16 +177,27 @@
       padding-inline: clamp(var(--space-4), 4vw, var(--space-10));
     }
     .container--narrow { width: min(100%, var(--content-narrow)); }
-
     .site-header {
       position: sticky;
       top: 0;
       z-index: 100;
       padding-block: var(--space-4);
-      background: color-mix(in srgb, var(--color-bg) 82%, transparent);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--color-divider);
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+    }
+    .site-header::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-accent-light), transparent);
+      opacity: 0.5;
+      filter: drop-shadow(0 0 4px var(--color-accent-light));
     }
     .header-inner {
       display: flex;
@@ -302,7 +313,7 @@
       background:
         radial-gradient(circle at 30% 12%, rgba(212, 196, 168, 0.38), transparent 22%),
         radial-gradient(circle at 80% 28%, rgba(139, 115, 85, 0.18), transparent 24%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 50%);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 3%);
       transform: translateY(0);
     }
     .hero-monogram,
@@ -333,6 +344,39 @@
       width: min(20vw, 9rem);
       opacity: 0.45;
       z-index: -1;
+    }
+
+    .back-to-top {
+      position: fixed;
+      right: var(--space-6);
+      bottom: var(--space-6);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--color-surface);
+      border: 1px solid var(--color-divider);
+      color: var(--color-text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 90;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: all var(--transition);
+      box-shadow: var(--shadow-sm);
+    }
+    .back-to-top.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    .back-to-top:hover {
+      color: var(--color-accent);
+      border-color: var(--color-accent-light);
+      background: var(--color-bg);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-4px);
     }
     .hero-inner {
       position: relative;
@@ -786,6 +830,12 @@
   <div class="cursor-dot" aria-hidden="true"></div>
   <div class="cursor-ring" aria-hidden="true"></div>
 
+  <button class="back-to-top" id="backToTop" aria-label="Back to top">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m18 15-6-6-6 6"/>
+    </svg>
+  </button>
+
   <header class="site-header">
     <div class="container">
       <div class="header-inner">
@@ -818,9 +868,9 @@
     <img class="hero-monogram" src="assets/svg/monogram.svg" alt="" aria-hidden="true" loading="lazy">
     <img class="hero-petals" src="assets/svg/petals.svg" alt="" aria-hidden="true" loading="lazy">
     <div class="container--narrow hero-inner">
-      <p class="hero-eyebrow">Sayreville, NJ 08872</p>
+      <p class="hero-eyebrow">Parlin, NJ 08859</p>
       <h1 class="hero-title" data-split-text>NS Couture</h1>
-      <p class="hero-subtitle">High fashion and bridal couture, occasion dressing, and luxury tailoring.</p>
+      <p class="hero-subtitle">High bridal couture, occasion dressing, and quietly luxurious tailoring.</p>
       <img class="hero-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
       <p class="hero-note">Quiet confidence, tactile detail, and a selection designed to feel like luxury itself.</p>
     </div>
@@ -834,7 +884,7 @@
           <h2 class="section-title">The Catalogue</h2>
           <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
         </div>
-                                <div class="filter-bar" role="group" aria-label="Filter by category">
+                                                <div class="filter-bar" role="group" aria-label="Filter by category">
           <button class="filter-btn active" data-category="all">All</button>
           <button class="filter-btn" data-category="Bridal">Bridal</button>
           <button class="filter-btn" data-category="High Fashion">High Fashion</button>
@@ -858,15 +908,6 @@
             </div>
           </article>
         </div>
-            </div>
-            <div class="item-info">
-              <span class="item-cat">Bridal</span>
-              <h3 class="item-name">Alexa Prom</h3>
-              
-            </div>
-          </article>
-        </div>
-        </div>
       </div>
     </section>
 
@@ -881,7 +922,7 @@
         <a href="mailto:hello@nscouture.com" class="btn-booking">Request an Appointment</a>
         <div class="contact-details">
           <div class="contact-block"><span class="contact-label">Location</span><span class="contact-value">499 Ernston Rd, Suite [#], Parlin, NJ 08859</span></div>
-          <div class="contact-block"><span class="contact-label">Hours</span><span class="contact-value">Tue–Sat, By Appointment</span></div>
+          <div class="contact-block"><span class="contact-label">Hours</span><span class="contact-value">Mon–Sat, By Appointment</span></div>
         </div>
       </div>
     </section>
@@ -891,7 +932,7 @@
     <div class="footer-inner">
       <span class="footer-brand">NS Couture</span>
       <span class="footer-meta">&copy; 2026 NS Couture &mdash; All rights reserved</span>
-      <span class="footer-meta">Last updated: 2026-05-01 01:10 UTC</span>
+      <span class="footer-meta">Last updated: 2026-05-06 19:32 UTC</span>
     </div>
   </footer>
 
@@ -1061,6 +1102,20 @@
           requestAnimationFrame(animateCursor);
         }
         animateCursor();
+      }
+
+      const backToTop = document.getElementById('backToTop');
+      if (backToTop) {
+        window.addEventListener('scroll', function () {
+          if (window.scrollY > 400) {
+            backToTop.classList.add('is-visible');
+          } else {
+            backToTop.classList.remove('is-visible');
+          }
+        });
+        backToTop.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
       }
     }());
   </script>

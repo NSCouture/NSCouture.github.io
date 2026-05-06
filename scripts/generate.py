@@ -150,17 +150,19 @@ def render_filter_bar(categories):
 
 
 def patch_html(source, data):
-    """Patch only the three dynamic regions in index.html, leaving everything else intact."""
+    """Patch dynamic regions and site metadata in index.html."""
+    site = data.get("site", {})
     categories = data.get("categories", [])
     items = data.get("items", [])
     built_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     # 1. Catalogue grid — replace all content inside id="catalogue-grid"
+    # Using a more specific pattern to match the closing div at the same indentation level
     source = re.sub(
         r'(<div class="catalogue-grid" id="catalogue-grid">)'
         r".*?"
-        r"(</div>)",
-        lambda m: m.group(1) + "\n" + render_cards(items) + "\n        " + m.group(2),
+        r"(\n        </div>)",
+        lambda m: m.group(1) + "\n" + render_cards(items) + m.group(2),
         source,
         flags=re.DOTALL,
     )
@@ -175,7 +177,53 @@ def patch_html(source, data):
             flags=re.DOTALL,
         )
 
-    # 3. Footer timestamp — update in place
+    # 3. Site Metadata — update address, tagline, etc.
+    if site:
+        # Update meta description
+        if site.get("tagline") and site.get("location"):
+            new_desc = f"{site['name']} — {site['tagline']} Located in {site['location']}."
+            source = re.sub(
+                r'(<meta name="description" content=")([^"]*)(">)',
+                rf"\g<1>{esc(new_desc)}\g<3>",
+                source
+            )
+        
+        # Update hero eyebrow (location)
+        if site.get("location"):
+            # Extract City, State Zip from full location
+            loc_parts = site["location"].split(",")
+            if len(loc_parts) >= 2:
+                city_state = loc_parts[-1].strip()
+                if len(loc_parts) >= 3:
+                    city_state = f"{loc_parts[-2].strip()}, {city_state}"
+                
+                source = re.sub(
+                    r'(<p class="hero-eyebrow">)([^<]*)(</p>)',
+                    rf"\g<1>{esc(city_state)}\g<3>",
+                    source
+                )
+
+        # Update contact details
+        if site.get("location"):
+            source = re.sub(
+                r'(<span class="contact-label">Location</span><span class="contact-value">)([^<]*)(</span>)',
+                rf"\g<1>{esc(site['location'])}\g<3>",
+                source
+            )
+        if site.get("hours"):
+            source = re.sub(
+                r'(<span class="contact-label">Hours</span><span class="contact-value">)([^<]*)(</span>)',
+                rf"\g<1>{esc(site['hours'])}\g<3>",
+                source
+            )
+        if site.get("email"):
+            source = re.sub(
+                r'(href="mailto:)([^"]*)(")',
+                rf"\g<1>{esc(site['email'])}\g<3>",
+                source
+            )
+
+    # 4. Footer timestamp — update in place
     source = re.sub(
         r'(<span class="footer-meta">Last updated: )([^<]*)(</span>)',
         rf"\g<1>{built_at}\g<3>",
@@ -185,11 +233,28 @@ def patch_html(source, data):
     return source
 
 
+def check_images(data):
+    """Check for large images and print warnings."""
+    print("Checking image sizes ...")
+    items = data.get("items", [])
+    large_count = 0
+    for item in items:
+        path = IMAGES_DIR / item["filename"]
+        if path.exists():
+            size_mb = path.stat().st_size / (1024 * 1024)
+            if size_mb > 1.0:
+                print(f"  [!] Large image: {item['filename']} ({size_mb:.2f} MB). Consider optimizing.")
+                large_count += 1
+    if large_count:
+        print(f"  Total {large_count} large image(s) found.")
+
+
 def main():
     print("Loading catalogue.json ...")
     data = load_meta()
     print("Syncing images/ ...")
     data = sync(data)
+    check_images(data)
     print("Patching index.html ...")
     source = OUTPUT.read_text(encoding="utf-8")
     patched = patch_html(source, data)
