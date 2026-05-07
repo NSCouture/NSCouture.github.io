@@ -177,11 +177,31 @@ def patch_html(source, data):
             flags=re.DOTALL,
         )
 
-    # 3. Site Metadata — update address, tagline, etc.
+    # 3. Site Metadata — update name, address, tagline, etc.
     if site:
+        # Update site name in various tags
+        if site.get("name"):
+            name = esc(site["name"])
+            # <title>
+            source = re.sub(r'(<title>)(.*?)(</title>)', rf"\g<1>{name}\g<3>", source)
+            # og:title
+            source = re.sub(r'(<meta property="og:title" content=")(.*?)(">)', rf"\g<1>{name}\g<3>", source)
+            # twitter:title
+            source = re.sub(r'(<meta name="twitter:title" content=")(.*?)(">)', rf"\g<1>{name}\g<3>", source)
+            # site-logo aria-label
+            source = re.sub(r'(aria-label=")(.*?)(\s+home")', rf"\g<1>{name}\g<3>", source)
+            # site-logo-name
+            source = re.sub(r'(<span class="site-logo-name">)(.*?)(</span>)', rf"\g<1>{name}\g<3>", source)
+            # hero-title
+            source = re.sub(r'(<h1 class="hero-title"[^>]*>)(.*?)(</h1>)', rf"\g<1>{name}\g<3>", source)
+            # footer-brand
+            source = re.sub(r'(<span class="footer-brand">)(.*?)(</span>)', rf"\g<1>{name}\g<3>", source)
+            # copyright name
+            source = re.sub(r'(&copy; \d{4} )(.*?)( &mdash;)', rf"\g<1>{name}\g<3>", source)
+
         # Update meta description
         if site.get("tagline") and site.get("location"):
-            new_desc = f"{site['name']} — {site['tagline']} Located in {site['location']}."
+            new_desc = f"{site.get('name', 'NSCoutureStudio')} — {site['tagline']} Located in {site['location']}."
             source = re.sub(
                 r'(<meta name="description" content=")([^"]*)(">)',
                 rf"\g<1>{esc(new_desc)}\g<3>",
@@ -219,6 +239,12 @@ def patch_html(source, data):
         if site.get("email"):
             source = re.sub(
                 r'(href="mailto:)([^"]*)(")',
+                rf"\g<1>{esc(site['email'])}\g<3>",
+                source
+            )
+            # Update email display text if it exists as a contact value
+            source = re.sub(
+                r'(<span class="contact-label">Email</span><span class="contact-value">)([^<]*)(</span>)',
                 rf"\g<1>{esc(site['email'])}\g<3>",
                 source
             )

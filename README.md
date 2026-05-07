@@ -1,4 +1,4 @@
-# NSCouture Catalogue — GitHub Pages
+# NSCoutureStudio Catalogue — GitHub Pages
 
 Automatically updating product catalogue hosted on GitHub Pages.
 **Upload or delete images → the site rebuilds and goes live automatically.**
