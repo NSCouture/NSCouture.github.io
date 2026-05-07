@@ -225,27 +225,41 @@ def patch_html(source, data):
 
         # Update contact details
         if site.get("location"):
+            # Update displayed location text
             source = re.sub(
-                r'(<span class="contact-label">Location</span><span class="contact-value">)([^<]*)(</span>)',
+                r'(id="contactLocation">)([^<]*)(</span>)',
                 rf"\g<1>{esc(site['location'])}\g<3>",
                 source
             )
+            # Update Google Maps link (stripping Suite info for the search query)
+            # This handles "Suite [#]" or "Suite 101" styles
+            clean_address = re.sub(r'Suite\s*\[?[^\],]+\]?,?\s*', '', site['location']).strip()
+            map_query = quote(clean_address)
+            source = re.sub(
+                r'(href="https://www.google.com/maps/search/\?api=1&query=)([^"]*)(")',
+                rf"\g<1>{map_query}\g<3>",
+                source
+            )
+
         if site.get("hours"):
             source = re.sub(
-                r'(<span class="contact-label">Hours</span><span class="contact-value">)([^<]*)(</span>)',
+                r'(id="contactHours">)([^<]*)(</span>)',
                 rf"\g<1>{esc(site['hours'])}\g<3>",
                 source
             )
+
         if site.get("email"):
+            email = esc(site["email"])
+            # Update displayed email text
             source = re.sub(
-                r'(href="mailto:)([^"]*)(")',
-                rf"\g<1>{esc(site['email'])}\g<3>",
+                r'(id="contactEmail">)([^<]*)(</span>)',
+                rf"\g<1>{email}\g<3>",
                 source
             )
-            # Update email display text if it exists as a contact value
+            # Update copy-to-clipboard data attribute
             source = re.sub(
-                r'(<span class="contact-label">Email</span><span class="contact-value">)([^<]*)(</span>)',
-                rf"\g<1>{esc(site['email'])}\g<3>",
+                r'(data-copy=")([^"]*)(")',
+                rf"\g<1>{email}\g<3>",
                 source
             )
 

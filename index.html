@@ -674,57 +674,135 @@
       font-size: var(--text-base);
       color: var(--color-text-muted);
     }
-    .btn-booking {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 48px;
-      padding: 0 var(--space-8);
-      border-radius: var(--radius-pill);
-      background: var(--color-accent);
-      color: var(--color-bg);
-      font-size: var(--text-xs);
-      font-family: var(--font-display-secondary);
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      transition: transform var(--transition), background var(--transition), box-shadow var(--transition);
-      box-shadow: 0 14px 32px rgba(91, 45, 142, 0.25);
-      margin-top: var(--space-2);
-      margin-bottom: var(--space-8);
-    }
-    .btn-booking:hover {
-      background: var(--color-accent-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 18px 40px rgba(74, 36, 117, 0.30);
-    }
-    .contact-section .container--narrow {
-      text-align: center;
-    }
-    .contact-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: var(--space-5);
-      margin-top: var(--space-10);
+    .contact-card {
+      margin-top: var(--space-4);
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all var(--transition);
       text-align: left;
     }
-    .contact-block {
+    .contact-card:hover {
+      box-shadow: var(--shadow-sm);
+      border-color: color-mix(in srgb, var(--color-accent) 25%, var(--color-border));
+    }
+    .contact-card-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-6) var(--space-8);
+      transition: background var(--transition);
+    }
+    .contact-card-header:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+    .contact-card-title {
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-style: italic;
+      color: var(--color-text);
+    }
+    .contact-card-hint {
+      font-family: var(--font-accent);
+      font-size: var(--text-2xs);
+      color: var(--color-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-left: auto;
+      margin-right: var(--space-4);
+    }
+    .contact-card-icon {
+      color: var(--color-accent);
+      transition: transform var(--transition);
+    }
+    .contact-card[data-expanded="true"] .contact-card-icon {
+      transform: rotate(180deg);
+    }
+    .contact-card-content {
+      padding: 0 var(--space-8) var(--space-8);
       display: grid;
+      gap: var(--space-8);
+    }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: var(--space-6);
+    }
+    .contact-group {
+      display: flex;
+      flex-direction: column;
       gap: var(--space-2);
-      padding: var(--space-5);
+    }
+    .email-wrapper {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      background: var(--color-surface-2);
       border: 1px solid var(--color-border);
-      border-radius: var(--radius-md);
-      background: rgba(255, 255, 255, 0.28);
+      border-radius: var(--radius-pill);
+      font-family: var(--font-display-secondary);
+      font-size: 0.65rem;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      transition: all var(--transition);
+    }
+    .copy-btn:hover {
+      background: var(--color-accent-light);
+      color: var(--color-accent);
+      border-color: var(--color-accent-light);
+    }
+    .copy-btn.is-copied {
+      background: var(--color-accent);
+      color: var(--color-bg);
+      border-color: var(--color-accent);
+    }
+    .contact-link-address {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: var(--color-text-muted);
+      transition: color var(--transition);
+    }
+    .contact-link-address:hover {
+      color: var(--color-accent);
     }
     .contact-label {
-      color: var(--color-text-faint);
+      font-family: var(--font-accent);
       font-size: var(--text-2xs);
+      color: var(--color-text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
     }
-    .contact-value,
-    .contact-link {
+    .contact-value {
       font-size: var(--text-sm);
       color: var(--color-text-muted);
     }
-    .contact-link:hover { color: var(--color-accent); }
+    .contact-note {
+      margin: 0;
+      font-size: var(--text-sm);
+      color: var(--color-text-faint);
+      line-height: 1.6;
+      max-width: 50ch;
+    }
+
+    [data-theme="dark"] .contact-card {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    [data-theme="dark"] .contact-card-header:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    [data-theme="dark"] .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+    }
 
     .site-footer {
       padding-block: var(--space-8);
@@ -884,7 +962,7 @@
           <h2 class="section-title">The Catalogue</h2>
           <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
         </div>
-                                                                        <div class="filter-bar" role="group" aria-label="Filter by category">
+                                                                                <div class="filter-bar" role="group" aria-label="Filter by category">
           <button class="filter-btn active" data-category="all">All</button>
           <button class="filter-btn" data-category="Bridal">Bridal</button>
           <button class="filter-btn" data-category="High Fashion">High Fashion</button>
@@ -911,18 +989,60 @@
       </div>
     </section>
 
-    <section class="contact-section" id="contact" aria-label="Book a consultation">
+    <section class="contact-section" id="contact" aria-label="Contact and location">
       <div class="container--narrow">
         <div class="section-header section-heading">
           <p class="section-label">Private Appointments</p>
-          <h2 class="contact-title">Book a Consultation</h2>
+          <h2 class="contact-title">Contact & Visit</h2>
           <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
         </div>
-        <p class="contact-subtitle">Every piece can be shaped around the wearer. Schedule a private appointment to explore the full collection in person.</p>
-        <a href="mailto:niriasin@gmail.com" class="btn-booking">Request an Appointment</a>
-        <div class="contact-details">
-          <div class="contact-block"><span class="contact-label">Location</span><span class="contact-value">499 Ernston Rd, Suite [#], Parlin, NJ 08859</span></div>
-          <div class="contact-block"><span class="contact-label">Hours</span><span class="contact-value">Tue–Sat, By Appointment</span></div>
+        <p class="contact-subtitle">Experience our collection in person. We offer private consultations for bridal couture and bespoke tailoring.</p>
+        
+        <div class="contact-card" id="contactCard">
+          <button class="contact-card-header" aria-expanded="false" aria-controls="contactDetails">
+            <span class="contact-card-title">Book a Consultation</span>
+            <span class="contact-card-hint">View details</span>
+            <svg class="contact-card-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </button>
+          
+          <div class="contact-card-content" id="contactDetails" hidden>
+            <div class="contact-grid">
+              <div class="contact-group">
+                <span class="contact-label">Email</span>
+                <div class="email-wrapper">
+                  <span class="contact-value" id="contactEmail">niriasin@gmail.com</span>
+                  <button class="copy-btn" data-copy="niriasin@gmail.com" aria-label="Copy email address">
+                    <span class="copy-text">Copy</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="contact-group">
+                <span class="contact-label">Location</span>
+                <a href="https://www.google.com/maps/search/?api=1&query=499%20Ernston%20Rd%2C%20Parlin%2C%20NJ%2008859" 
+                   target="_blank" rel="noopener noreferrer" class="contact-link-address" aria-label="View on Google Maps">
+                  <span class="contact-value" id="contactLocation">499 Ernston Rd, Suite [#], Parlin, NJ 08859</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                    <polyline points="15 3 21 3 21 9"/>
+                    <line x1="10" y1="14" x2="21" y2="3"/>
+                  </svg>
+                </a>
+              </div>
+
+              <div class="contact-group">
+                <span class="contact-label">Hours</span>
+                <span class="contact-value" id="contactHours">Tue–Sat, By Appointment</span>
+              </div>
+            </div>
+            <p class="contact-note">Every piece can be shaped around the wearer. Schedule a private appointment to explore the full collection and discuss your vision.</p>
+          </div>
         </div>
       </div>
     </section>
@@ -932,7 +1052,7 @@
     <div class="footer-inner">
       <span class="footer-brand">NSCoutureStudio</span>
       <span class="footer-meta">&copy; 2026 NSCoutureStudio &mdash; All rights reserved</span>
-      <span class="footer-meta">Last updated: 2026-05-07 16:50 UTC</span>
+      <span class="footer-meta">Last updated: 2026-05-07 17:23 UTC</span>
     </div>
   </footer>
 
@@ -1117,6 +1237,64 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
+
+      const contactCard = document.getElementById('contactCard');
+      const contactHeader = contactCard ? contactCard.querySelector('.contact-card-header') : null;
+      const contactContent = contactCard ? contactCard.querySelector('.contact-card-content') : null;
+
+      if (contactCard && contactHeader && contactContent) {
+        contactHeader.addEventListener('click', function () {
+          const isExpanded = contactCard.getAttribute('data-expanded') === 'true';
+          const nextState = !isExpanded;
+          
+          contactCard.setAttribute('data-expanded', nextState);
+          contactHeader.setAttribute('aria-expanded', nextState);
+          
+          if (nextState) {
+            contactContent.hidden = false;
+            if (window.gsap && !prefersReducedMotion) {
+              gsap.fromTo(contactContent, 
+                { height: 0, opacity: 0 }, 
+                { height: 'auto', opacity: 1, duration: 0.5, ease: 'power3.out' }
+              );
+            }
+          } else {
+            if (window.gsap && !prefersReducedMotion) {
+              gsap.to(contactContent, { 
+                height: 0, 
+                opacity: 0, 
+                duration: 0.4, 
+                ease: 'power3.in',
+                onComplete: function() { contactContent.hidden = true; }
+              });
+            } else {
+              contactContent.hidden = true;
+            }
+          }
+        });
+      }
+
+      document.querySelectorAll('.copy-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (event) {
+          event.stopPropagation();
+          const text = btn.getAttribute('data-copy');
+          if (!text) return;
+
+          navigator.clipboard.writeText(text).then(function () {
+            const copyText = btn.querySelector('.copy-text');
+            const originalText = copyText ? copyText.textContent : 'Copy';
+            if (copyText) copyText.textContent = 'Copied!';
+            btn.classList.add('is-copied');
+            
+            setTimeout(function () {
+              if (copyText) copyText.textContent = originalText;
+              btn.classList.remove('is-copied');
+            }, 2000);
+          }).catch(function (err) {
+            console.error('Failed to copy text: ', err);
+          });
+        });
+      });
     }());
   </script>
 </body>
