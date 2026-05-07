@@ -137,7 +137,7 @@
       color: var(--color-text);
       background:
         radial-gradient(circle at top left, rgba(212, 196, 168, 0.18), transparent 32%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 2%),
+        linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 25%, transparent), transparent 2%),
         var(--color-bg);
       line-height: 1.65;
       overflow-x: hidden;
@@ -186,7 +186,7 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--color-divider);
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03), 0 1px 0 rgba(255, 255, 255, 0.4) inset;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03), 0 1px 0 color-mix(in srgb, var(--color-accent) 20%, transparent) inset;
     }
     .site-header::after {
       content: "";
@@ -313,7 +313,7 @@
       background:
         radial-gradient(circle at 30% 12%, rgba(212, 196, 168, 0.38), transparent 22%),
         radial-gradient(circle at 80% 28%, rgba(139, 115, 85, 0.18), transparent 24%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.65), transparent 3%);
+        linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 15%, transparent), transparent 3%);
       transform: translateY(0);
     }
     .hero-monogram,
@@ -962,7 +962,7 @@
           <h2 class="section-title">The Catalogue</h2>
           <img class="section-divider" src="assets/svg/divider.svg" alt="" aria-hidden="true">
         </div>
-                                                                                        <div class="filter-bar" role="group" aria-label="Filter by category">
+                                                                                                <div class="filter-bar" role="group" aria-label="Filter by category">
           <button class="filter-btn active" data-category="all">All</button>
           <button class="filter-btn" data-category="Bridal">Bridal</button>
           <button class="filter-btn" data-category="High Fashion">High Fashion</button>
@@ -1052,7 +1052,7 @@
     <div class="footer-inner">
       <span class="footer-brand">NSCoutureStudio</span>
       <span class="footer-meta">&copy; 2026 NSCoutureStudio &mdash; All rights reserved</span>
-      <span class="footer-meta">Last updated: 2026-05-07 17:26 UTC</span>
+      <span class="footer-meta">Last updated: 2026-05-07 17:37 UTC</span>
     </div>
   </footer>
 
