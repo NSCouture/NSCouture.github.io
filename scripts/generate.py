@@ -202,8 +202,21 @@ def patch_html(source, data):
         # Update meta description
         if site.get("tagline") and site.get("location"):
             new_desc = f"{site.get('name', 'NSCoutureStudio')} — {site['tagline']} Located in {site['location']}."
+            # Standard meta description
             source = re.sub(
                 r'(<meta name="description" content=")([^"]*)(">)',
+                rf"\g<1>{esc(new_desc)}\g<3>",
+                source
+            )
+            # OpenGraph description
+            source = re.sub(
+                r'(<meta property="og:description" content=")([^"]*)(">)',
+                rf"\g<1>{esc(new_desc)}\g<3>",
+                source
+            )
+            # Twitter description
+            source = re.sub(
+                r'(<meta name="twitter:description" content=")([^"]*)(">)',
                 rf"\g<1>{esc(new_desc)}\g<3>",
                 source
             )
